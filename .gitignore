@@ -161,3 +161,6 @@ cython_debug/
 
 # Weights and Biases folder, doesn't need to be on the git
 wanb/
+
+# Other stuff
+PINNTorch.py
