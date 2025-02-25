@@ -11,7 +11,7 @@ class Network(nn.Module):
 
     def forward(self, x, t):
         y = torch.stack([x,t],dim=-1)
-        print("y shape :",y.shape)
+        # print("y shape :",y.shape)
         for layer in self.hidden_layers:
             y = torch.tanh(layer(y))
         out = self.output_layer(y)
@@ -21,13 +21,14 @@ class Network(nn.Module):
 def open_boundary(N, g_d_1=1, g_d_2=0):
     t = torch.rand(N, dtype=torch.float32)
     x = torch.cat([torch.ones(N // 2) * 1, torch.ones(N // 2) * -1], dim=0)
+
     u = torch.cat([torch.ones(N // 2) * g_d_1, torch.ones(N // 2) * g_d_2], dim=0)
     return x,t, u
 
 def init_cond(N):
     x = torch.rand(N, dtype=torch.float32)*2-1
     t = torch.zeros_like(x)
-    u = - torch.sin(5*np.pi * x)
+    u = - torch.sin(np.pi * x)
     return x, t, u
 
 def f(u, x, t, a):
@@ -72,6 +73,7 @@ for step in range(ITERS + 1):
 
     # Physics loss
     u_pred_ph = model(x_ph,t_ph)
+    print("u_pred_ph shape :",u_pred_ph.shape)
     #loss_ph = mse_loss(f(u_pred_ph, x_ph, a, g), torch.zeros_like(g)).mean()
     loss_ph = torch.nn.functional.mse_loss(f(u_pred_ph,x_ph,t_ph,0.1),torch.zeros(N_in))
     # Total loss
