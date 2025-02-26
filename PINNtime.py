@@ -54,6 +54,7 @@ N_bc = 100
 x_bc, t_bc, u_bc = [torch.stack([v_t0, v_x], dim=0) for v_t0, v_x in zip(init_cond(N_bc), open_boundary(N_bc,0,0))]
 #x_bc, t_bc, u_bc = np.asarray(x_bc,dtype=np.float32), np.asarray(t_bc,dtype=np.float32) ,np.asarray(u_bc,dtype=np.float32)
 
+print("u_bc shape:",u_bc.shape)
 
 N_in = 1000
 x_ph, t_ph = torch.rand(N_in)*2-1,torch.rand(N_in)
