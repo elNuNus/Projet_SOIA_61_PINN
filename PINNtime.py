@@ -37,9 +37,12 @@ def f(u, x, t, a):
     u_t = torch.autograd.grad(u, t, grad_outputs=torch.ones_like(u), create_graph=True)[0]
     return u_t-a * u_xx
 
-N=128
+N = 128
 grids_xt = np.meshgrid(np.linspace(-1, 1, N), np.linspace(0, 1, 33), indexing='ij')
 grid_x, grid_t = [torch.tensor(t,dtype=torch.float32) for t in grids_xt]
+print("grid_x shape :",grid_x.shape)
+print("grid_t shape :",grid_t.shape)
+print("grids_xt shape :",grids_xt[0].shape)
 
 model = Network()
 
@@ -48,7 +51,7 @@ u_pred_bc = model(grid_x,grid_t)
 
 N_bc = 100
 
-x_bc, t_bc, u_bc = [torch.stack([v_t0, v_x], dim=0) for v_t0, v_x in zip(init_cond(N_bc), open_boundary(N_bc))]
+x_bc, t_bc, u_bc = [torch.stack([v_t0, v_x], dim=0) for v_t0, v_x in zip(init_cond(N_bc), open_boundary(N_bc,0,0))]
 #x_bc, t_bc, u_bc = np.asarray(x_bc,dtype=np.float32), np.asarray(t_bc,dtype=np.float32) ,np.asarray(u_bc,dtype=np.float32)
 
 
@@ -59,7 +62,7 @@ t_ph.requires_grad = True
 
 optimizer = optim.SGD(model.parameters(), lr=0.1)
 #optimizer = optim.Adam(model.parameters(), lr=0.001)
-ITERS = 500
+ITERS = 5000
 loss_plot = []
 for step in range(ITERS + 1):
     optimizer.zero_grad()
@@ -73,7 +76,7 @@ for step in range(ITERS + 1):
 
     # Physics loss
     u_pred_ph = model(x_ph,t_ph)
-    print("u_pred_ph shape :",u_pred_ph.shape)
+    # print("u_pred_ph shape :",u_pred_ph.shape)
     #loss_ph = mse_loss(f(u_pred_ph, x_ph, a, g), torch.zeros_like(g)).mean()
     loss_ph = torch.nn.functional.mse_loss(f(u_pred_ph,x_ph,t_ph,0.1),torch.zeros(N_in))
     # Total loss
@@ -84,7 +87,7 @@ for step in range(ITERS + 1):
     loss_plot.append(loss.item())
     if step < 11 or step % 100 == 0:
          print(f'Step {step}, loss: {loss.item()}')
-
+#%%
 # Plot loss
 plt.plot(loss_plot)
 plt.yscale('log')
@@ -92,11 +95,24 @@ plt.xlabel('Iterations')
 plt.ylabel('Loss')
 plt.show()
 
-# Plot animated prediction
+# Plot 2D solution
 u_pred = model(grid_x,grid_t).detach().numpy().reshape(N, 33)
+print("u_pred shape :",u_pred.shape)
 plt.imshow(u_pred, aspect='auto', extent=(-1, 1, 0, 1))
 plt.colorbar()
-plt.xlabel('x')
-plt.ylabel('t')
+plt.xlabel('t')
+plt.ylabel('u')
 plt.title('Predicted solution')
+plt.show()
+
+plt.show()
+#%%
+# Plot the solutions in 3D
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+X, T = np.meshgrid(np.linspace(-1, 1, N), np.linspace(0, 1, 33))
+ax.plot_surface(X, T, u_pred.T, cmap='viridis')
+ax.set_xlabel("x")
+ax.set_ylabel("t")
+ax.set_zlabel("u")
 plt.show()
