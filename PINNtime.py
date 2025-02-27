@@ -102,7 +102,7 @@ print("u_pred shape :",u_pred.shape)
 plt.imshow(u_pred, aspect='auto', extent=(-1, 1, 0, 1))
 plt.colorbar()
 plt.xlabel('t')
-plt.ylabel('u')
+plt.ylabel('x')
 plt.title('Predicted solution')
 plt.show()
 
