@@ -7,6 +7,9 @@ import torch.nn as nn
 n_layers = 10
 n_neurons = 100
 
+nu = 0.1
+v = 1
+
 class Network(nn.Module):
     def __init__(self, neurons=20, layers=8):
         super(Network, self).__init__()
@@ -36,11 +39,11 @@ def init_cond(N):
     u = - torch.sin(np.pi * x)
     return x, t, u
 
-def f(u, x, t, a):
+def f(u, x, t):
     u_x = torch.autograd.grad(u, x, grad_outputs=torch.ones_like(u), create_graph=True)[0]
     u_xx = torch.autograd.grad(u_x, x, grad_outputs=torch.ones_like(u_x), create_graph=True)[0]
     u_t = torch.autograd.grad(u, t, grad_outputs=torch.ones_like(u), create_graph=True)[0]
-    return u_t-a * u_xx
+    return u_t - nu*u_xx #+ v*u_x
 
 N_x = 128
 N_t = 150
@@ -85,7 +88,7 @@ for step in range(ITERS + 1):
     u_pred_ph = model(x_ph,t_ph)
     # print("u_pred_ph shape :",u_pred_ph.shape)
     #loss_ph = mse_loss(f(u_pred_ph, x_ph, a, g), torch.zeros_like(g)).mean()
-    loss_ph = torch.nn.functional.mse_loss(f(u_pred_ph,x_ph,t_ph,0.1),torch.zeros(N_in))
+    loss_ph = torch.nn.functional.mse_loss(f(u_pred_ph,x_ph,t_ph),torch.zeros(N_in))
     # Total loss
     loss = loss_u + loss_ph
     loss.backward()
@@ -94,41 +97,62 @@ for step in range(ITERS + 1):
     loss_plot.append(loss.item())
     if step < 11 or step % 100 == 0:
          print(f"Step {step}, loss: {loss.item()}")
+
 #%%
 # Plot loss
 plt.plot(loss_plot)
 plt.yscale("log")
 plt.xlabel("Epochs")
 plt.ylabel("Loss")
-plt.title(f"Training loss of the 1D heat equation \n Architecture : {n_layers} layers, {n_neurons} neurons/layer \n Best loss : {np.min(loss_plot)}")
+plt.title(f"Training loss of the 1D convection-diffusion equation \n Architecture : {n_layers} layers, {n_neurons} neurons/layer \n Best loss : {np.min(loss_plot)}")
 plt.show()
 
 # Plot 2D solution
 u_pred = model(grid_x,grid_t).detach().numpy().reshape(N_x, N_t)
 print("u_pred shape :",u_pred.shape)
-plt.imshow(u_pred, aspect="auto", extent=(-1, 1, 0, 1))
+plt.imshow(u_pred, aspect="auto", extent=(0, 1, -1, 1), cmap="plasma")
 plt.colorbar()
 plt.xlabel("t")
 plt.ylabel("x")
 # plt.title("Predicted solution")
-plt.title(f"Solution of the 1D heat equation \n Architecture : {n_layers} layers, {n_neurons} neurons/layer")
+plt.title(f"Solution of the 1D convection-diffusion equation \n Architecture : {n_layers} layers, {n_neurons} neurons/layer")
 plt.show()
 
+# Exact solution for the 1D convection-diffusion equation
+U_ex = -np.sin(np.pi * grids_xt[0]) * np.exp(-np.pi ** 2 * grids_xt[1])
+u_pred = u_pred.T
+
+#%%
+# MSE computation
+X, T = np.meshgrid(np.linspace(-1, 1, N_x), np.linspace(0, 1, N_t))
+u_true = -np.sin(np.pi * X) * np.exp(-np.pi ** 2 * T)
+mse = np.mean((u_true - u_pred) ** 2)
+print("\nMSE: ", mse)
+
+# Plot error map between the two
+plt.figure()
+plt.imshow(np.abs(u_pred.T - U_ex)*mse, aspect='auto', cmap="viridis", extent=(0, 1, -1, 1))
+plt.xlabel("t")
+plt.ylabel("x")
+plt.title(f"Error map between the prediction and the ground truth \n Architecture : {n_layers} layers, {n_neurons} neurons/layer")
+plt.colorbar()
 plt.show()
 #%%
 # Plot the solutions in 3D
 fig = plt.figure()
 ax = fig.add_subplot(111, projection="3d")
-X, T = np.meshgrid(np.linspace(-1, 1, N_x), np.linspace(0, 1, N_t))
-ax.plot_surface(X, T, u_pred.T, cmap="viridis")
+ax.plot_surface(X, T, u_pred, cmap="plasma")
 ax.set_xlabel("x")
 ax.set_ylabel("t")
 ax.set_zlabel("u")
-plt.title(f"Solution of the 1D heat equation \n Architecture : {n_layers} layers, {n_neurons} neurons/layer")
+plt.title(f"Solution of the 1D convection-diffusion equation \n Architecture : {n_layers} layers, {n_neurons} neurons/layer")
 plt.show()
-
-#%%
-# MSE computation
-u_true = -np.sin(np.pi * X) * np.exp(-np.pi ** 2 * T)
-mse = np.mean((u_true - u_pred.T) ** 2)
-print("\nMSE: ", mse)
+#%% Plot the prediction and ground truth at t=.25
+t_obs = 1
+u_pred = u_pred.T
+u_true = u_true.T
+plt.plot(X[0], u_pred[:, t_obs], label="Prediction", color="green")
+plt.plot(X[0], u_true[:, t_obs], label="Ground truth", color="blue", linestyle="--")
+plt.legend()
+plt.title("Prediction and ground truth at t=.25")
+plt.show()
