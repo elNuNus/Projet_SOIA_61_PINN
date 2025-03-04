@@ -99,6 +99,9 @@ for step in range(ITERS + 1):
          print(f"Step {step}, loss: {loss.item()}")
 
 #%%
+# Exact solution for the 1D heat equation
+U_ex = -np.sin(np.pi * grids_xt[0]) * np.exp(-np.pi ** 2 * grids_xt[1] * nu)
+
 # Plot loss
 plt.plot(loss_plot)
 plt.yscale("log")
@@ -114,14 +117,12 @@ plt.imshow(u_pred, aspect="auto", extent=(0, 1, -1, 1), cmap="plasma")
 plt.colorbar()
 plt.xlabel("t")
 plt.ylabel("x")
-# plt.title("Predicted solution")
-plt.title(f"Solution of the 1D convection-diffusion equation \n Architecture : {n_layers} layers, {n_neurons} neurons/layer")
+# plt.title("Ground truth for the 1D heat equation")
+plt.title(f"Solution of the 1D heat equation \n Architecture : {n_layers} layers, {n_neurons} neurons/layer")
+# plt.title(f"Solution of the 1D convection-diffusion equation \n Architecture : {n_layers} layers, {n_neurons} neurons/layer")
 plt.show()
 
-# Exact solution for the 1D convection-diffusion equation
-U_ex = -np.sin(np.pi * grids_xt[0]) * np.exp(-np.pi ** 2 * grids_xt[1])
 u_pred = u_pred.T
-
 #%%
 # MSE computation
 X, T = np.meshgrid(np.linspace(-1, 1, N_x), np.linspace(0, 1, N_t))
@@ -131,7 +132,7 @@ print("\nMSE: ", mse)
 
 # Plot error map between the two
 plt.figure()
-plt.imshow(np.abs(u_pred.T - U_ex)*mse, aspect='auto', cmap="viridis", extent=(0, 1, -1, 1))
+plt.imshow(np.abs(u_pred.T - U_ex), aspect='auto', cmap="viridis", extent=(0, 1, -1, 1))
 plt.xlabel("t")
 plt.ylabel("x")
 plt.title(f"Error map between the prediction and the ground truth \n Architecture : {n_layers} layers, {n_neurons} neurons/layer")
